@@ -15,24 +15,36 @@ require(mosaic)
 require(readr)
 ```
 
+## Motivation
 
+- Engage students (make statistics relevant to their experiences)  
+
+- Put "data at the center of the curriculum"  [Gould and Cetinkaya Rundel (2013)]  
+
+- Capitalize on the fantastic R packages which have been developed recently  
+
+- Take advantage of the many interesting data sets which are publicly available   
 
 ## What is Dynamic Data?
 
 In contrast to (most) *static* data, *dynamic* data...  
 
-- is compiled / kept up to date by someone else
-- is uploaded directly from the internet 
-- isn't particularly clean
-- IS accessible at all levels of statistics
+- is compiled / kept up to date by someone else  
+
+- is uploaded directly from the internet   
+
+- isn't particularly clean  
+
+- IS accessible at all levels of statistics  
+
 
 ## Project Goals
 
-- To bring dynamic data sets into the curriculum
+- To bring dynamic data sets into the curriculum  
 
-- ... in order to answer interesting statistical questions
+- ... in order to answer interesting statistical questions  
 
-- ... and other scientific questions.
+- ... and other scientific questions.  
 
 ## Project Goals
 
@@ -55,13 +67,6 @@ In contrast to (most) *static* data, *dynamic* data...
 
 
 **What is new?  EVERYTHING.**
-
-## Motivation
-
-- Engage students (make statistics relevant to their experiences)
-- Put "data at the center of the curriculum"  [Gould and Cetinkaya Rundel (2013)]
-- Capitalize on the fantastic R packages which have been developed recently
-- Take advantage of the many interesting data sets which are publicly available 
 
 
 ## College Scorecard Data
@@ -205,7 +210,7 @@ The NHANES data (from the National Health and Nutrition Examination Survey - nat
 4. Selection of individuals within a household  
 
 
-```{r warning=FALSE, message=FALSE, echo=FALSE}
+```{r warning=FALSE, message=FALSE, echo=FALSE, include=FALSE}
 require(Hmisc)
 NHANES.demo <- sasxport.get("http://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/DEMO_G.XPT")
 NHANES.body <- sasxport.get("http://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/BMX_G.XPT")
@@ -246,7 +251,7 @@ head(NHANES.comb)
 ```
 
 
-## NHANES In Intro Stats
+## NHANES in Intro Stats
 
 ```{r}
 Adults = NHANES.comb %>% 
@@ -264,7 +269,7 @@ dim(Adults)
 t.test(bmi ~ rel, data=Adults)
 ```
 
-## NHANES Beyond Intro Stats
+## NHANES beyond Intro Stats
 
 In a linear models or computational statistics class, smooth curves might be a topic of discussion:
 
@@ -286,7 +291,7 @@ ggplot(Adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) +
     + Using dynamic data in an introductory classroom
     + Thinking outside the box
     
-- Full R Markdown files for downloading: http://research.pomona.edu/johardin/papers-and-publications/  
+- Full R Markdown files for downloading: https://github.com/hardin47/DynamicData
 - Manuscript on arXiv: http://arxiv.org/abs/1603.04912
 
 
