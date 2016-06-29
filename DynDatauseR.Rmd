@@ -54,8 +54,9 @@ In contrast to (most) *static* data, *dynamic* data...
 
 - ... and other scientific questions.
 
-
+<div class="centered">
 **What is new?  Nothing.**
+</div>
 
 ## Project Goals
 
@@ -66,7 +67,9 @@ In contrast to (most) *static* data, *dynamic* data...
 - ... and other scientific questions.
 
 
+<div class="centered">
 **What is new?  EVERYTHING.**
+</div>
 
 
 ## College Scorecard Data
@@ -297,20 +300,21 @@ ggplot(Adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) +
 
 ## Full Examples
 
-- College Scorecard
-- NHANES (National Health and Nutrition Examination Survey)
-- Wikipedia (scraping XML / HTML)
-- Gapminder (Literacy Rates, using **tidyr**'s **gather** function)
-- NOAA weather data from buoys
+- College Scorecard  
+- NHANES (National Health and Nutrition Examination Survey)  
+- Wikipedia (scraping XML / HTML)  
+- Gapminder (Literacy Rates, using **tidyr**'s **gather** function)  
+- NOAA weather data from buoys  
 
 ## Additional Examples
 
-- Baseball Data  (Jim Albert)
-- Cherry Blossom Ten Mile Run (Kaplan, in Nolan & Temple Lang, 2015)
-- Fatal Accidents & US Census Data (Laura Kapitula)
-- Climate Data
-- Iowa Liquor Sales
-- Medicare Inpatient Charges
+- Baseball Data  (Jim Albert)  
+- Cherry Blossom Ten Mile Run (Kaplan, in Nolan & Temple Lang, 2015)  
+- Fatal Accidents & US Census Data (Laura Kapitula)  
+- Climate Data  
+- Iowa Liquor Sales  
+- Medicare Inpatient Charges  
+
 
 
 ## Thank you!
@@ -318,6 +322,6 @@ ggplot(Adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) +
 Jo Hardin  
 Pomona College  
 jo.hardin@pomona.edu  
-https://github.com/hardin47/DynamicData
-@jo_hardin47
+https://github.com/hardin47/DynamicData  
+@jo_hardin47  
 

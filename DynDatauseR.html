@@ -93,7 +93,9 @@ Jo Hardin - Pomona College
 <li><p>… in order to answer interesting statistical questions</p></li>
 <li><p>… and other scientific questions.</p></li>
 </ul>
+<div class="centered">
 <p><strong>What is new? Nothing.</strong></p>
+</div>
 </div>
 <div id="project-goals-2" class="slide section level2">
 <h1>Project Goals</h1>
@@ -102,7 +104,9 @@ Jo Hardin - Pomona College
 <li><p>… in order to answer interesting statistical questions</p></li>
 <li><p>… and other scientific questions.</p></li>
 </ul>
+<div class="centered">
 <p><strong>What is new? EVERYTHING.</strong></p>
+</div>
 </div>
 <div id="college-scorecard-data" class="slide section level2">
 <h1>College Scorecard Data</h1>
@@ -343,7 +347,7 @@ NHANES.comb &lt;-<span class="st">  </span>
 ## 6        0        1       44        1        5        1        5   male</code></pre>
 </div>
 <div id="nhanes-in-intro-stats" class="slide section level2">
-<h1>NHANES In Intro Stats</h1>
+<h1>NHANES in Intro Stats</h1>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">Adults =<span class="st"> </span>NHANES.comb %&gt;%<span class="st"> </span>
 <span class="st">  </span><span class="kw">filter</span>(ridageyr &gt;=<span class="dv">18</span>, bmxbmi&gt;<span class="dv">1</span>) %&gt;%<span class="st"> </span>
 <span class="st">  </span><span class="kw">filter</span>(dmdmartl&gt;<span class="dv">0</span> &amp;<span class="st"> </span>dmdmartl &lt;<span class="st"> </span><span class="dv">10</span>) %&gt;%<span class="st"> </span>
@@ -371,7 +375,7 @@ NHANES.comb &lt;-<span class="st">  </span>
 ##                28.66960                28.90799</code></pre>
 </div>
 <div id="nhanes-beyond-intro-stats" class="slide section level2">
-<h1>NHANES Beyond Intro Stats</h1>
+<h1>NHANES beyond Intro Stats</h1>
 <p>In a linear models or computational statistics class, smooth curves might be a topic of discussion:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggplot</span>(Adults, <span class="kw">aes</span>(<span class="dt">x=</span>bmxht, <span class="dt">y=</span>bmxwt, <span class="dt">group=</span>gender, <span class="dt">color=</span>gender)) +<span class="st"> </span><span class="kw">geom_point</span>(<span class="dt">alpha=</span>.<span class="dv">5</span>)+<span class="st"> </span>
 <span class="st">  </span><span class="kw">xlab</span>(<span class="st">&quot;Height&quot;</span>) +<span class="st"> </span><span class="kw">ylab</span>(<span class="st">&quot;Weight&quot;</span>) +<span class="st"> </span><span class="kw">ggtitle</span>(<span class="st">&quot;Height vs Weight by Gender&quot;</span>)</code></pre></div>
@@ -398,21 +402,30 @@ NHANES.comb &lt;-<span class="st">  </span>
 <div id="full-examples" class="slide section level2">
 <h1>Full Examples</h1>
 <ul>
-<li>College Scorecard</li>
-<li>NHANES (National Health and Nutrition Examination Survey)</li>
-<li>Wikipedia (scraping XML / HTML)</li>
-<li>Gapminder (Literacy Rates, using <strong>tidyr</strong>’s <strong>gather</strong> function)</li>
+<li>College Scorecard<br />
+</li>
+<li>NHANES (National Health and Nutrition Examination Survey)<br />
+</li>
+<li>Wikipedia (scraping XML / HTML)<br />
+</li>
+<li>Gapminder (Literacy Rates, using <strong>tidyr</strong>’s <strong>gather</strong> function)<br />
+</li>
 <li>NOAA weather data from buoys</li>
 </ul>
 </div>
 <div id="additional-examples" class="slide section level2">
 <h1>Additional Examples</h1>
 <ul>
-<li>Baseball Data (Jim Albert)</li>
-<li>Cherry Blossom Ten Mile Run (Kaplan, in Nolan &amp; Temple Lang, 2015)</li>
-<li>Fatal Accidents &amp; US Census Data (Laura Kapitula)</li>
-<li>Climate Data</li>
-<li>Iowa Liquor Sales</li>
+<li>Baseball Data (Jim Albert)<br />
+</li>
+<li>Cherry Blossom Ten Mile Run (Kaplan, in Nolan &amp; Temple Lang, 2015)<br />
+</li>
+<li>Fatal Accidents &amp; US Census Data (Laura Kapitula)<br />
+</li>
+<li>Climate Data<br />
+</li>
+<li>Iowa Liquor Sales<br />
+</li>
 <li>Medicare Inpatient Charges</li>
 </ul>
 </div>
@@ -421,7 +434,8 @@ NHANES.comb &lt;-<span class="st">  </span>
 <p>Jo Hardin<br />
 Pomona College<br />
 <a href="mailto:jo.hardin@pomona.edu">jo.hardin@pomona.edu</a><br />
-<a href="https://github.com/hardin47/DynamicData" class="uri">https://github.com/hardin47/DynamicData</a> <span class="citation">@jo_hardin47</span></p>
+<a href="https://github.com/hardin47/DynamicData" class="uri">https://github.com/hardin47/DynamicData</a><br />
+<span class="citation">@jo_hardin47</span></p>
 </div>
 
   <!-- dynamically load mathjax for compatibility with self-contained -->
