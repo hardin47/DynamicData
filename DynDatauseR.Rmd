@@ -1,0 +1,318 @@
+---
+title: "Dynamic Data @ useR"
+author: "Jo Hardin - Pomona College"
+date: "June 30, 2016"
+output:
+  slidy_presentation:
+    font_adjustment: +10
+    footer: "Jo Hardin, jo.hardin@pomona.edu"
+---
+
+```{r echo=FALSE,message=FALSE, warning=FALSE}
+require(tidyr)
+require(plyr)
+require(mosaic)
+require(readr)
+```
+
+
+
+## What is Dynamic Data?
+
+In contrast to (most) *static* data, *dynamic* data...  
+
+- is compiled / kept up to date by someone else
+- is uploaded directly from the internet 
+- isn't particularly clean
+- IS accessible at all levels of statistics
+
+## Project Goals
+
+- To bring dynamic data sets into the curriculum
+
+- ... in order to answer interesting statistical questions
+
+- ... and other scientific questions.
+
+## Project Goals
+
+- To bring dynamic data sets into the curriculum
+
+- ... in order to answer interesting statistical questions
+
+- ... and other scientific questions.
+
+
+**What is new?  Nothing.**
+
+## Project Goals
+
+- To bring dynamic data sets into the curriculum
+
+- ... in order to answer interesting statistical questions
+
+- ... and other scientific questions.
+
+
+**What is new?  EVERYTHING.**
+
+## Motivation
+
+- Engage students (make statistics relevant to their experiences)
+- Put "data at the center of the curriculum"  [Gould and Cetinkaya Rundel (2013)]
+- Capitalize on the fantastic R packages which have been developed recently
+- Take advantage of the many interesting data sets which are publicly available 
+
+
+## College Scorecard Data
+
+- US institutions of higher education data on cost, debt, completion rates, and post-graduation earning potential  
+- collected by the U.S. Department of Education
+- compilation of institutional reporting, federal financial aid reports, and tax information  
+- well documented at [https://collegescorecard.ed.gov/data/documentation/](https://collegescorecard.ed.gov/data/documentation/)
+- caveat: some of the variables have been collected only on students receiving federal financial aid (biases inherent to analyses done on data collected from such a subgroup should be considered)
+
+
+
+## Downloading the College Scorecard Data
+
+```{r cache=TRUE}
+college_url <- "https://s3.amazonaws.com/ed-college-choice-public/Most+Recent+Cohorts+(All+Data+Elements).csv"
+college_data <- read_csv(college_url)
+dim(college_data)
+names(college_data)[37:45]
+```
+
+
+## Cleaning the College Scorecard Data
+
+Very big data set, lots of cleaning to do.
+
+```{r cache=TRUE}
+college_debt = college_data %>% 
+  select(INSTNM,STABBR,PREDDEG, HIGHDEG, region, LOCALE, CCUGPROF,HBCU,
+         WOMENONLY, RELAFFIL,ADM_RATE, SATVRMID, SATMTMID,SATWRMID,
+         SAT_AVG, UG,NPT4_PUB, NPT4_PRIV, COSTT4_A, DEBT_MDN, CUML_DEBT_P90, 
+         mn_earn_wne_p10,md_earn_wne_p10) %>%
+  mutate(region2 =  ifelse(region=="0", "Military", 
+                    ifelse(region=="1", "New England",
+                    ifelse(region=="2", "Mid East", 
+                    ifelse(region=="3", "Great Lakes",
+                    ifelse(region=="4", "Plains", 
+                    ifelse(region=="5", "Southeast",
+                    ifelse(region=="6", "Southwest", 
+                    ifelse(region=="7", "Rocky Mnts",
+                    ifelse(region=="8", "Far West", "Outlying")))))))))) %>%
+  mutate(ADM_RATE = extract_numeric(ADM_RATE),
+       SATVRMID = extract_numeric(SATVRMID),
+       SATMTMID = extract_numeric(SATMTMID),
+       SATWRMID = extract_numeric(SATWRMID),
+       SAT_AVG = extract_numeric(SAT_AVG),
+       UG = extract_numeric(UG),
+       NPT4_PUB = extract_numeric(NPT4_PUB),
+       NPT4_PRIV = extract_numeric(NPT4_PRIV),
+       COSTT4_A = extract_numeric(COSTT4_A),
+       DEBT_MDN = extract_numeric(DEBT_MDN),
+       CUML_DEBT_P90 = extract_numeric(CUML_DEBT_P90),
+       mn_earn_wne_p10 = extract_numeric(mn_earn_wne_p10),
+       md_earn_wne_p10 = extract_numeric(md_earn_wne_p10)) %>%
+  mutate(RELAFFIL = ifelse(RELAFFIL=="NULL", NA, RELAFFIL),
+         LOCALE = ifelse(LOCALE =="NULL", NA, LOCALE),
+         CCUGPROF = ifelse(CCUGPROF=="NULL", NA, CCUGPROF),
+         HBCU = ifelse(HBCU=="NULL", NA, HBCU),
+         WOMENONLY = ifelse(WOMENONLY=="NULL", NA, WOMENONLY))
+  
+
+str(college_debt)
+summary(college_debt)
+```
+
+
+## Confidence versus Predictions Intervals:  Debt & Income
+
+```{r echo=FALSE}
+debt_mod <- lm(DEBT_MDN~1, data = college_debt)
+debt_fun <- makeFun(debt_mod)
+
+earn_mod <- lm(md_earn_wne_p10~1, data = college_debt)
+earn_fun <- makeFun(earn_mod)
+```
+
+
+```{r echo=FALSE}
+#creating the models for building confidence and prediction intervals:
+debtreg_mod <- lm(DEBT_MDN~as.factor(region), data = college_debt)
+debtreg_fun <- makeFun(debtreg_mod)
+earnreg_mod <- lm(md_earn_wne_p10~as.factor(region), data=college_debt)
+earnreg_fun <- makeFun(earnreg_mod)
+
+# creating a dataframe for holding the information needed to plot
+
+worth <- data.frame(fit = double(),
+                    lowerbound = double(),
+                    upperbound = double(),
+                    cost = character(),
+                    type = character(),
+                    regNum = character(),
+                    regName = character(),
+                    stringsAsFactors = FALSE)
+
+worth[1,] <- c(debt_fun(interval="conf"), "debt", "conf", "all", "US (all)")
+worth[2,] <- c(debt_fun(interval="pred"), "debt", "pred", "all", "US (all)")
+worth[3,] <- c(earn_fun(interval="conf"), "earn", "conf", "all", "US (all)")
+worth[4,] <- c(earn_fun(interval="pred"), "earn", "pred", "all", "US (all)")
+
+for(i in 0:9){
+  worth <- rbind(worth, 
+                 c(debtreg_fun(region=i,interval="conf"), "debt","conf",
+                   i,college_debt[college_debt$region==i,]$region2[1]))
+  worth <- rbind(worth, 
+                 c(debtreg_fun(region=i,interval="pred"), "debt","pred",
+                   i,college_debt[college_debt$region==i,]$region2[1]))
+
+  worth <- rbind(worth, 
+                 c(earnreg_fun(region=i,interval="conf"), "earn","conf",
+                   i,college_debt[college_debt$region==i,]$region2[1]))
+  worth <- rbind(worth, 
+                 c(earnreg_fun(region=i,interval="pred"), "earn","pred",
+                   i,college_debt[college_debt$region==i,]$region2[1]))
+  }
+
+worth <- worth %>% mutate(fit = extract_numeric(fit),
+                          lowerbound = extract_numeric(lowerbound),
+                          upperbound = extract_numeric(upperbound))
+```
+
+```{r echo=FALSE, fig.align="center", fig.width=8, fig.height=5}
+pd <- position_dodge(width = 0.5)
+ggplot(worth, aes(x=regName, y=fit)) + 
+  geom_point(aes(col=cost), position=pd) +
+  geom_errorbar(aes(ymin=lowerbound, ymax=upperbound, col=cost,
+                    lty=type), position=pd) + 
+  xlab("Region") + ylab("$debt or $income 10 years out") +
+  theme(text = element_text(size=8))
+
+
+```
+
+## NHANES Data
+
+The NHANES data (from the National Health and Nutrition Examination Survey - nationwide survey of CDC)
+
+1. Selection of primary sampling units (PSUs) (counties or small groups of contiguous counties)  
+2. Selection of segments within PSUs (cluster of households)  
+3. Selection of specific households within segments  
+4. Selection of individuals within a household  
+
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+require(Hmisc)
+NHANES.demo <- sasxport.get("http://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/DEMO_G.XPT")
+NHANES.body <- sasxport.get("http://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/BMX_G.XPT")
+NHANES.demo <-  
+  mutate(NHANES.demo, gender = ifelse(NHANES.demo$riagendr==1, "male", "female")) 
+
+NHANES.comb <-  
+  inner_join(NHANES.body, NHANES.demo, by = "seqn")
+
+head(NHANES.comb)
+```
+
+## (re-)Sampling the NHANES data
+
+Because the NHANES data were collected using a cluster sampling scheme, it is important to use the variables which describe the weights on the sampling to create a sample which is reflective of the population.  
+
+
+```{r}
+numobs = 5000
+SRSsample <- sample(1:nrow(NHANES.comb), numobs, replace=FALSE,
+       prob=NHANES.comb$wtmec2yr/sum(NHANES.comb$wtmec2yr))
+NHANES.comb <- NHANES.comb[SRSsample,]
+```
+
+## Downloading the NHANES Data
+
+```{r warning=FALSE, message=FALSE}
+require(Hmisc)
+NHANES.demo <- sasxport.get("http://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/DEMO_G.XPT")
+NHANES.body <- sasxport.get("http://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/BMX_G.XPT")
+NHANES.demo <-  
+  mutate(NHANES.demo, gender = ifelse(NHANES.demo$riagendr==1, "male", "female")) 
+
+NHANES.comb <-  
+  inner_join(NHANES.body, NHANES.demo, by = "seqn")
+
+head(NHANES.comb)
+```
+
+
+## NHANES In Intro Stats
+
+```{r}
+Adults = NHANES.comb %>% 
+  filter(ridageyr >=18, bmxbmi>1) %>% 
+  filter(dmdmartl>0 & dmdmartl < 10) %>% 
+  mutate(rel=ifelse(dmdmartl==6|dmdmartl==1, "committed", "not")) %>%
+  mutate(bmi=bmxbmi)
+  
+bwplot(bmi ~ rel, data=Adults, xlab="Relationship Status", ylab="BMI")
+
+ggplot(Adults, aes(rel, bmi))+ geom_violin(color="orange")+ 
+  xlab("Relationship Status") + ylab("BMI")
+
+dim(Adults)
+t.test(bmi ~ rel, data=Adults)
+```
+
+## NHANES Beyond Intro Stats
+
+In a linear models or computational statistics class, smooth curves might be a topic of discussion:
+
+```{r}
+ggplot(Adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) + geom_point(alpha=.5)+ 
+  xlab("Height") + ylab("Weight") + ggtitle("Height vs Weight by Gender")
+  
+ggplot(Adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) + 
+  xlab("Height") + ylab("Weight") + geom_point(alpha=.5)+ 
+  stat_smooth(alpha=1)+ 
+  ggtitle("Height vs Weight by Gender with Smooth Regression Fit")
+```
+
+
+## Manuscript
+
+- Format:
+    + Example (description, documentation, references)
+    + Using dynamic data in an introductory classroom
+    + Thinking outside the box
+    
+- Full R Markdown files for downloading: http://research.pomona.edu/johardin/papers-and-publications/  
+- Manuscript on arXiv: http://arxiv.org/abs/1603.04912
+
+
+## Full Examples
+
+- College Scorecard
+- NHANES (National Health and Nutrition Examination Survey)
+- Wikipedia (scraping XML / HTML)
+- Gapminder (Literacy Rates, using **tidyr**'s **gather** function)
+- NOAA weather data from buoys
+
+## Additional Examples
+
+- Baseball Data  (Jim Albert)
+- Cherry Blossom Ten Mile Run (Kaplan, in Nolan & Temple Lang, 2015)
+- Fatal Accidents & US Census Data (Laura Kapitula)
+- Climate Data
+- Iowa Liquor Sales
+- Medicare Inpatient Charges
+
+
+## Thank you!
+
+Jo Hardin  
+Pomona College  
+jo.hardin@pomona.edu  
+https://github.com/hardin47/DynamicData
+@jo_hardin47
+

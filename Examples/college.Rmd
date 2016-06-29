@@ -1,0 +1,199 @@
+---
+title: "College Scorecard"
+date: "June 2016"
+output: pdf_document
+---
+
+```{r echo=FALSE,message=FALSE, warning=FALSE}
+require(mosaic)
+require(ggplot2)
+require(plyr)
+require(tidyr)
+require(dplyr)
+require(readr)
+```
+
+
+# Introduction
+
+Data on characteristics of US institutions of higher education was collected in an effort to make more transparent issues of cost, debt, completion rates, and post-graduation earning potential.  An undertaking of the U.S. Department of Education, the College Scorecard data represent a compilation of institutional reporting, federal financial aid reports, and tax information.  The process of gathering and compiling the data is well documented on the College Scorecard website [https://collegescorecard.ed.gov/data/documentation/](https://collegescorecard.ed.gov/data/documentation/).  One caveat is that some of the variables have only been collected on students receiving federal financial aid.  Biases inherent to analyses done on data collected from a subgroup should be considered.
+
+
+# Data information & loading data
+
+There are multiple ways of downloading the College Scorecard data. The data are available: for all years (1996-2013) in a .zip file; as the most recent year (as this file is written, the most recent year is 2013) in a .csv file; or as the scorecard only data in a .csv file. [https://collegescorecard.ed.gov/data/](https://collegescorecard.ed.gov/data/).  For the analysis below, we have used the 2013 most recent data.  The original file contains 7804 institutions and 1728 variables.  
+
+The dataset is incredibly rich.  The variables are broken down by race, family income, first generation status, age of student, etc.  It allows for a student to investigate political or personal hypotheses about college education and the costs and benefits within.  The variables are described in a data dictionary given at [https://collegescorecard.ed.gov/assets/CollegeScorecardDataDictionary-09-08-2015.csv](https://collegescorecard.ed.gov/assets/CollegeScorecardDataDictionary-09-08-2015.csv).
+
+
+```{r}
+college_url <- "https://s3.amazonaws.com/ed-college-choice-public/Most+Recent+Cohorts+(All+Data+Elements).csv"
+college_data <- read_csv(college_url)
+dim(college_data)
+```
+
+It's a really big dataset.  Let's only use some of the variables, and also let's make sure that they are all numeric with NA coded appropriately.
+
+```{r}
+college_debt = college_data %>% 
+  select(INSTNM,STABBR,PREDDEG, HIGHDEG, region, LOCALE,
+         CCUGPROF,HBCU,WOMENONLY, RELAFFIL,ADM_RATE,SATVRMID,
+         SATMTMID,SATWRMID,SAT_AVG, UG,NPT4_PUB, NPT4_PRIV,
+         COSTT4_A, DEBT_MDN, CUML_DEBT_P90, mn_earn_wne_p10,
+         md_earn_wne_p10) %>%
+  mutate(ADM_RATE = extract_numeric(ADM_RATE),
+         SATVRMID = extract_numeric(SATVRMID),
+         SATMTMID = extract_numeric(SATMTMID),
+         SATWRMID = extract_numeric(SATWRMID),
+         SAT_AVG = extract_numeric(SAT_AVG),
+         UG = extract_numeric(UG),
+         NPT4_PUB = extract_numeric(NPT4_PUB),
+         NPT4_PRIV = extract_numeric(NPT4_PRIV),
+         COSTT4_A = extract_numeric(COSTT4_A),
+         DEBT_MDN = extract_numeric(DEBT_MDN),
+         CUML_DEBT_P90 = extract_numeric(CUML_DEBT_P90),
+         mn_earn_wne_p10 = extract_numeric(mn_earn_wne_p10),
+         md_earn_wne_p10 = extract_numeric(md_earn_wne_p10)) %>%
+  mutate(RELAFFIL = ifelse(RELAFFIL=="NULL", NA, RELAFFIL),
+         LOCALE = ifelse(LOCALE =="NULL", NA, LOCALE),
+         CCUGPROF = ifelse(CCUGPROF=="NULL", NA, CCUGPROF),
+         HBCU = ifelse(HBCU=="NULL", NA, HBCU),
+         WOMENONLY = ifelse(WOMENONLY=="NULL", NA, WOMENONLY)) %>%
+  mutate(region2 = ifelse(region=="0", "Military", 
+                  ifelse(region=="1", "New England",
+                  ifelse(region=="2", "Mid East", 
+                  ifelse(region=="3", "Great Lakes",
+                  ifelse(region=="4", "Plains", 
+                  ifelse(region=="5", "Southeast",
+                  ifelse(region=="6", "Southwest", 
+                  ifelse(region=="7", "Rocky Mnts",
+                  ifelse(region=="8", "Far West", "Outlying"))))))))))
+
+str(college_debt)
+summary(college_debt)
+```
+
+
+# Using dynamic data within a typical classroom
+
+The *mosaic* package formats most data analysis in terms of formulas.  The formulas make it clear to the user which variable is the response variable and which is the predictor variable.  The formulas also make it straightforward to include additional information to realize further nuances of the underlying relationships.
+
+In this analysis, we will find univariate confidence intervals for amount of debt after graduation, to be compared with earnings 10 years out.  Note that the calculations are for both confidence and prediction intervals.  However, the prediction value is for an *institution*  (which is the observational unit).  The analysis below lends itself nicely to a conversation about confidence vs. prediction intervals as well as observational units as institution vs. as individual student.  Additionally, the plot below demonstrates the effect of samples size:  consider the comparison of the Military intervals (1 school) to the intervals for all of the US institutions (about 6000 schools).
+
+```{r}
+require(mosaic)
+debt_mod <- lm(DEBT_MDN~1, data = college_debt)
+debt_fun <- makeFun(debt_mod)
+debt_fun()
+debt_fun(interval="confidence")
+debt_fun(interval="prediction")
+
+earn_mod <- lm(md_earn_wne_p10~1, data = college_debt)
+earn_fun <- makeFun(earn_mod)
+earn_fun()
+earn_fun(interval="confidence")
+earn_fun(interval="prediction")
+```
+
+The prediction intervals are interesting, but might be even more interesting if broken down by region and shown visually.  Note how much smaller the confidence intervals are from the prediction intervals!  The difference indicates lots of variability across institutions and large sample sizes.
+
+```{r}
+#creating the models for building confidence and prediction intervals:
+debtreg_mod <- lm(DEBT_MDN~as.factor(region), data = college_debt)
+debtreg_fun <- makeFun(debtreg_mod)
+earnreg_mod <- lm(md_earn_wne_p10~as.factor(region), data=college_debt)
+earnreg_fun <- makeFun(earnreg_mod)
+
+# creating a dataframe for holding the information needed to plot
+
+worth <- data.frame(fit = double(),
+                    lowerbound = double(),
+                    upperbound = double(),
+                    cost = character(),
+                    type = character(),
+                    regNum = character(),
+                    regName = character(),
+                    stringsAsFactors = FALSE)
+
+worth[1,] <- c(debt_fun(interval="conf"), "debt", "conf", "all", "US (all)")
+worth[2,] <- c(debt_fun(interval="pred"), "debt", "pred", "all", "US (all)")
+worth[3,] <- c(earn_fun(interval="conf"), "earn", "conf", "all", "US (all)")
+worth[4,] <- c(earn_fun(interval="pred"), "earn", "pred", "all", "US (all)")
+
+for(i in 0:9){
+  worth <- rbind(worth, 
+                 c(debtreg_fun(region=i,interval="conf"), "debt","conf",
+                   i,college_debt[college_debt$region==i,]$region2[1]))
+  worth <- rbind(worth, 
+                 c(debtreg_fun(region=i,interval="pred"), "debt","pred",
+                   i,college_debt[college_debt$region==i,]$region2[1]))
+
+  worth <- rbind(worth, 
+                 c(earnreg_fun(region=i,interval="conf"), "earn","conf",
+                   i,college_debt[college_debt$region==i,]$region2[1]))
+  worth <- rbind(worth, 
+                 c(earnreg_fun(region=i,interval="pred"), "earn","pred",
+                   i,college_debt[college_debt$region==i,]$region2[1]))
+  }
+
+worth <- worth %>% mutate(fit = extract_numeric(fit),
+                          lowerbound = extract_numeric(lowerbound),
+                          upperbound = extract_numeric(upperbound))
+
+pd <- position_dodge(width = 1)
+ggplot(worth, aes(x=regName, y=fit)) + 
+  geom_point(aes(col=cost), position=pd, size=.8) +
+  geom_errorbar(aes(ymin=lowerbound, ymax=upperbound, col=cost,
+                    lty=type), position=pd) + 
+  xlab("Region") + ylab("$debt (orange) or $income (blue) 10 years post matriculation") +
+  theme(text = element_text(size=8))
+```
+
+# Thinking outside the box
+
+The dataset is incredibly rich and can be used for a lot of model building: linear, logistic, machine learning.  Indeed, thinking about interaction terms could be particularly insightful.  Below, we give an example of the variables above with the interaction term as whether or not the institution is one of the Historically Black Colleges and Universities (HBCU).
+
+```{r echo=FALSE}
+# A great function for helping to write the text of the equation 
+# direction onto the plot.  Taken from: http://stackoverflow.com/questions/31014700/plot-two-regression-equations-or-more-on-the-same-graph-ggplot
+equation = function(file) {
+  mod = lm(md_earn_wne_p10 ~ DEBT_MDN,data=file)
+  mod_sum = summary(mod)
+  formula = sprintf("Earn= %.3f %+.3f*Debt", coef(mod)[1], coef(mod)[2])
+  r = mod_sum$r.squared
+  r2 = sprintf("r2= %.3f", r)
+  x  = cor.test(~DEBT_MDN + md_earn_wne_p10,data=file)
+  r0 = sprintf("r= %.3f", x[4])
+  p1 = pf(mod_sum$fstatistic[1],mod_sum$fstatistic[2],mod_sum$fstatistic[3],lower.tail=F)
+ p =sprintf("p = %.3f", p1)
+n0 = length(mod_sum$residual)
+n1 = sprintf("N = %.f", n0)
+data.frame(formula=formula, r2=r2, p=p,n=n1, stringsAsFactors=FALSE)
+}
+```
+
+```{r}
+college_debt_nona <- college_debt %>% 
+  select(md_earn_wne_p10, DEBT_MDN, HBCU) 
+college_debt_nona <- college_debt_nona[complete.cases(college_debt_nona),]
+
+earn_lm <- lm(md_earn_wne_p10 ~ DEBT_MDN*HBCU, data=college_debt_nona)
+summary(earn_lm)
+```
+
+```{r echo=FALSE}
+equation_end = ddply(college_debt_nona, c("HBCU"), equation) 
+```
+
+```{r}
+ggplot(college_debt_nona, aes(x=DEBT_MDN, y=md_earn_wne_p10, color=HBCU)) +
+  geom_text(aes(DEBT_MDN,md_earn_wne_p10, label=toString(equation_end[1,-1])),
+            data=data.frame(DEBT_MDN=25000, md_earn_wne_p10=180000, HBCU="0"))+
+  geom_text(aes(DEBT_MDN,md_earn_wne_p10, label=toString(equation_end[2,-1])),
+            data=data.frame(DEBT_MDN=25000, md_earn_wne_p10=160000, HBCU="1"))+
+  geom_point(alpha=.25, size=.25) + 
+  geom_smooth(method="lm", fill=NA, lwd=.5) +
+  xlab("Debt at Graduation") + 
+  ylab("Median income 10 years post matriculation")+
+  theme(text = element_text(size=10))
+```

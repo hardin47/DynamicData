@@ -1,0 +1,156 @@
+---
+title: "Wikipedia"
+date: "June 2016"
+output: pdf_document
+---
+
+
+```{r message=FALSE, echo=FALSE, warning=FALSE}
+require(XML)
+require(dplyr)
+require(tidyr)
+require(mosaic)
+require(RCurl)
+```
+
+# Introduction
+
+The data in this example comes from Wikipedia.  Students can use almost any Wikipedia site as the vast majority of which contain data can be read using *readHTMLTable*.  Here, we will download data from international music sales.
+
+# Data information & loading data
+
+```{r  message=FALSE, warning=FALSE}
+#read in our data using a web address, strings as factors
+# is set to false, because we are not treating the strings as categories
+url = getURL("https://en.wikipedia.org/wiki/Music_industry#Total_revenue_by_year")
+parsedDoc = readHTMLTable(url, stringsAsFactors=FALSE)
+
+#return value is a list of data frames or matrices
+mytable = data.frame(parsedDoc[[6]]) #accessing the 6th HTML table
+
+# check out the other HTML tables:  parsedDoc[[7]]
+
+
+names(mytable) #what variables are in the table?
+names(mytable) = c("Rank", "Market", "Retail", "PerChange", "Physical",
+                   "Digital", "PerfRights", "Sync")
+names(mytable)  #these names of variables will be slightly eaiser to use
+```
+
+*parsedDoc* is a list of all the html tables found on the Wikipedia page. If you look through them, some are just useless things like header data and bibliography, etc. Consult the "How to Use R's XML Package" document to find and view your table.
+
+Notice that the data do not appear exactly as they did on Wikipedia. We will need to fix these problems with wrangling!
+
+#### Cleaning your Table
+In this section we will use the *dplyr* package to remove problematic elements from your table, including but not limited to (there is no limit to the strange things you will have to clean!) ill formatted entries, NaN's (not a number), as well as columns of data you do not need. There are additionally elements you may want to add to the dataset, for example if you find multiple tables corresponding to the same time period, you may want to splice these tables together and compare entries with a t-test or plot the entries on the same graph!
+
+Right now your data are in a Data Frame format, so many of these operations are straight from the data frame specification. As a matter of fact, *dplyr* limits your options when it comes to manipulation: this constraint helps you organize ans systematize your approach to data manipulation. *dplyr* can work with data frames as is, but if you are dealing with large data, it is worthwhile to convert them to a *tbl_df*: this is a wrapper around a data frame that will not accidentally print a lot of data to the screen.
+
+#### Grabbing a Column using Select
+When you read your table in, R should have automatically identified the row and column names, meaning that you should be able to access the ith row using the ith row's variable name. Run *attach(mytable)* for easy access of each column. If you don't want to do this, you can select the columns using dplyr *select(tableName,columnNumber)*.
+
+#### What dplyr allows you to do
+You don't have to trust me! Check out this awesome tutorial 
+\url{http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html}
+
+
+The final data table we'll use also has a variable called PerChange which is based on the column in the Wikipedia table "% Change".  The percent change is presumably over the last year, but a glimpse at the source data does not provide any additional information, \url{http://www.riaj.or.jp/e/issue/pdf/RIAJ2015E.pdf}.  A great conversation with your students would be centered around how the observations are collected (sampled), how the variables are defined, and whether the data appear to be of high quality.  
+
+```{r}
+music = mytable
+music[,-c(1:2)] = apply(music[,-c(1:2)], 2, extract_numeric)
+music = music %>% mutate(change = ifelse(PerChange < 0, "decrease", "increase"))
+glimpse(music)
+```
+
+
+
+# Using dynamic data within a typical classroom
+
+The data in the table include 4 columns representing the information on how retail sales are broken down: physical (e.g., CDs), digital (e.g., iTunes), performance rights (e.g., another band playing the song), and synchronization (e.g., songs played on TV or video games).
+
+Just having a table of data doesn't do much for us.  Let's use our statistical background and intuition about what interesting stories might be told about our data.  The percent change variable speaks to the direction of the change in retail sales in a given country.  Indeed, it is worth considering variables that might speak to the changing world of music sales.
+
+```{r}
+library(ggplot2)
+ggplot(music, aes(x=Retail, y=Physical, colour=change)) + 
+  geom_point() + 
+  xlab("retail value $ US millions") + ylab("% share physical recordings") +
+  ggtitle("Total Retail Sales vs percent of market share of physical recordings")
+
+```
+
+By grouping the data into two categories we can investigate whether there is any statistical difference between the total average retail sales (in US\$) between those countries for whom retail sales increased versus those that decreased.
+
+```{r}
+t.test(Retail ~ change, data=music)
+boxplot(Retail ~ change, data=music,
+        ylab="retail value $ US millions", xlab="change in value",
+        main="retail value vs. change in value over 2013 to 2014")
+```
+
+The p-value is reasonably large, but the boxplot shows that the difference in variability across the two groups is also large with a sample that either has large outliers or a long skewed right tail.  Because the technical assumptions do not appear to be met, a log transformation of the data or a non-parametric test might be better assessments of the data.
+
+```{r}
+boxplot(log(Retail) ~ change, data=music,
+        ylab="log retail value $ US millions", xlab="change in value",
+        main="log retail value vs. change in value over 2013 to 2014")
+t.test(log(Retail) ~ change, data=music)
+wilcox.test(Retail ~ change, data=music)
+```
+
+The technical assumptions for the t-test seem better now (though still not great), but neither the updated p-value nor the p-value on the Wilcoxon Rank Sum test are significant.  The data for the top 20 countries (in terms of market share of retail music sales) are allocated into the "increase" and "decrease" groups at no different an organization than random chance (with respect to average retail sales). 
+
+
+The classroom discussion can open up to interpretation of p-values.  We might have expected those countries with increased retail sales to have a higher average retail sale!  So why didn't they?  Possibly the test is not powerful enough - sample size is not high with these data.  Possibly there is no effect.  Possibly there was a sampling bias - maybe the top 20 countries are systematically different from other countries?  What other suggestions can your students come up with to consider the data?
+
+# Thinking outside the box
+
+Among the variables are the breakdown (percentages) of how the retail sales are distributed across physical, digital, performance rights, and synchronization.  We might want to see whether there is a dependency of total retail sales on the breakdown of types of products.  The problem is not well suited to introductory statistics as there is not an obvious statistic we can use within a sampling distribution (to create a p-value, etc.).  And each of the types of retail sales are clearly correlated with each other.
+
+A cursory plot shows us that there is likely a relationship (slope) between the percent of retail which is physical and the total retail sales.  The size of the plots speaks to the digital percent which is quite high for some low total retail sales but also quite high for the largest total retail sales.  The color says that the largest performance rights countries have middle range retail sales.  And we clearly understand that the four percentage variables are constrained to sum to one.
+
+```{r}
+ggplot(music, aes(y=log(Retail), x=Physical, size=Digital, color=PerfRights) )+ 
+  geom_point()
+```
+
+Because there does not seem to be an obvious mechanism for evaluating the breakdown of products (and how "different" they are), we will consider an ad-hoc measure and then perform a permutation test to assess significance.  The average breakdown of retail sales is given by the following values.  One way to measure a discrepancy between the retail sales and the consistency of product breakdown is to correlate the retail sales with the sum of squared distances from the average breakdown of product types.
+
+```{r}
+apply(music[,3:8],2,mean)
+music = music %>% mutate(PerCh2 = (PerChange-mean(PerChange)^2), 
+                         Phy2 = (Physical - mean(Physical))^2, 
+                         Dig2 = (Digital - mean(Digital))^2, 
+                         PerRt2 = (PerfRights - mean(PerfRights))^2, 
+                         Sync2 = (Sync - mean(Sync))^2,
+                         break.SSE = PerCh2 + Phy2 + Dig2 + PerRt2 + Sync2)
+
+ggplot(music, aes(x=break.SSE, y=log(Retail))) + geom_point()
+cor(break.SSE, log(Retail), data=music)       
+```
+
+The correlation between our created measure (breakdown SSE) and the log of the retail sales is low, but we don't have a sense for how low.  We can permute the data to see what the relationship between the log retails sales and breakdown SSE would be just by chance.
+
+```{r}
+cor.perm = c()
+reps = 500
+for(j in 1:reps){
+  perm = sample(1:20, replace=FALSE)
+  cor.perm = c(cor.perm, cor(break.SSE, log(Retail)[perm], data=music))}
+
+hist(cor.perm)
+abline(v=cor(break.SSE, log(Retail), data=music)  )
+sum(cor.perm > cor(break.SSE, log(Retail), data=music)) / reps
+```
+
+From the histogram and empirical p-value, we see that the metric we created to find a relationship between retail sales and breakdown of types of product does not show significance.  
+
+### Additional ideas for analysis:
+
+A good student project would be to think about different ways to measure how the breakdowns can be considered to be different.
+
+
+
+
+
