@@ -5,11 +5,9 @@ output: pdf_document
 ---
 
 ```{r echo=FALSE,message=FALSE, warning=FALSE}
-require(mosaic)
-require(ggplot2)
 require(plyr)
 require(tidyr)
-require(dplyr)
+require(mosaic)
 require(readr)
 ```
 
