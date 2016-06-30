@@ -317,11 +317,12 @@ ggplot(Adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) +
 
 
 
-## Thank you!
+## Thank you! {.flexbox .vcenter}
 
 Jo Hardin  
 Pomona College  
 jo.hardin@pomona.edu  
 https://github.com/hardin47/DynamicData  
 @jo_hardin47  
+
 
