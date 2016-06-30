@@ -306,6 +306,11 @@ ggplot(Adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) +
 - Gapminder (Literacy Rates, using **tidyr**'s **gather** function)  
 - NOAA weather data from buoys  
 
+
+---
+
+  ![](collegescreen.jpg)
+
 ## Additional Examples
 
 - Baseball Data  (Jim Albert)  
@@ -315,9 +320,16 @@ ggplot(Adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) +
 - Iowa Liquor Sales  
 - Medicare Inpatient Charges  
 
+---
+
+  ![](otherscreen.jpg)
 
 
-## Thank you! {.flexbox .vcenter}
+---
+
+  ![](gitscreen.png)
+
+## Thank you!
 
 Jo Hardin  
 Pomona College  
