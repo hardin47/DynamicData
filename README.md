@@ -7,6 +7,3 @@ useR2016 video is at: https://channel9.msdn.com/Events/useR-international-R-User
 
 Manuscript is accepted at TISE (Technology Innovations in Statistics Education) and available at: https://arxiv.org/abs/1603.04912
 
-
-take2 merge conflict
-
