@@ -1,12 +1,15 @@
 ---
 title: "College Scorecard"
-date: "June 2016"
+date: "December 2017"
 output: pdf_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width = 6, fig.height = 4, fig.align = "center", cache=TRUE)
+```
+
 ```{r echo=FALSE,message=FALSE, warning=FALSE}
-require(plyr)
-require(tidyr)
+require(tidyverse)
 require(mosaic)
 require(readr)
 ```
@@ -30,28 +33,28 @@ college_data <- read_csv(college_url)
 dim(college_data)
 ```
 
-It's a really big dataset.  Let's only use some of the variables, and also let's make sure that they are all numeric with NA coded appropriately.
+Let's only use some of the variables, and also let's make sure that they are all numeric with NA coded appropriately.
 
 ```{r}
 college_debt = college_data %>% 
-  select(INSTNM,STABBR,PREDDEG, HIGHDEG, region, LOCALE,
+  dplyr::select(INSTNM,STABBR,PREDDEG, HIGHDEG, region, LOCALE,
          CCUGPROF,HBCU,WOMENONLY, RELAFFIL,ADM_RATE,SATVRMID,
          SATMTMID,SATWRMID,SAT_AVG, UG,NPT4_PUB, NPT4_PRIV,
          COSTT4_A, DEBT_MDN, CUML_DEBT_P90, mn_earn_wne_p10,
          md_earn_wne_p10) %>%
-  mutate(ADM_RATE = extract_numeric(ADM_RATE),
-         SATVRMID = extract_numeric(SATVRMID),
-         SATMTMID = extract_numeric(SATMTMID),
-         SATWRMID = extract_numeric(SATWRMID),
-         SAT_AVG = extract_numeric(SAT_AVG),
-         UG = extract_numeric(UG),
-         NPT4_PUB = extract_numeric(NPT4_PUB),
-         NPT4_PRIV = extract_numeric(NPT4_PRIV),
-         COSTT4_A = extract_numeric(COSTT4_A),
-         DEBT_MDN = extract_numeric(DEBT_MDN),
-         CUML_DEBT_P90 = extract_numeric(CUML_DEBT_P90),
-         mn_earn_wne_p10 = extract_numeric(mn_earn_wne_p10),
-         md_earn_wne_p10 = extract_numeric(md_earn_wne_p10)) %>%
+  mutate(ADM_RATE = readr::parse_number(ADM_RATE),
+         SATVRMID = readr::parse_number(SATVRMID),
+         SATMTMID = readr::parse_number(SATMTMID),
+         SATWRMID = readr::parse_number(SATWRMID),
+         SAT_AVG = readr::parse_number(SAT_AVG),
+         UG = readr::parse_number(UG),
+         NPT4_PUB = readr::parse_number(NPT4_PUB),
+         NPT4_PRIV = readr::parse_number(NPT4_PRIV),
+         COSTT4_A = readr::parse_number(COSTT4_A),
+         DEBT_MDN = readr::parse_number(DEBT_MDN),
+         CUML_DEBT_P90 = readr::parse_number(CUML_DEBT_P90),
+         mn_earn_wne_p10 = readr::parse_number(mn_earn_wne_p10),
+         md_earn_wne_p10 = readr::parse_number(md_earn_wne_p10)) %>%
   mutate(RELAFFIL = ifelse(RELAFFIL=="NULL", NA, RELAFFIL),
          LOCALE = ifelse(LOCALE =="NULL", NA, LOCALE),
          CCUGPROF = ifelse(CCUGPROF=="NULL", NA, CCUGPROF),
@@ -74,26 +77,35 @@ summary(college_debt)
 
 # Using dynamic data within a typical classroom
 
-The *mosaic* package formats most data analysis in terms of formulas.  The formulas make it clear to the user which variable is the response variable and which is the predictor variable.  The formulas also make it straightforward to include additional information to realize further nuances of the underlying relationships.
+Using the downloaded data, we start by applying a technique from the introductory curriculum to a research question of interest based on the College Scorecard data.  College debt is of particular interest to many college students, but debt can be mediated by post-graduation income.  To fully investigate the relationship between the variables, we provide both confidence and prediction intervals for both variables.  
 
-In this analysis, we will find univariate confidence intervals for amount of debt after graduation, to be compared with earnings 10 years out.  Note that the calculations are for both confidence and prediction intervals.  However, the prediction value is for an *institution*  (which is the observational unit).  The analysis below lends itself nicely to a conversation about confidence vs. prediction intervals as well as observational units as institution vs. as individual student.  Additionally, the plot below demonstrates the effect of samples size:  consider the comparison of the Military intervals (1 school) to the intervals for all of the US institutions (about 6000 schools).
+After calculating a few intervals, we show the intervals represented graphically and broken down by geographic region. Note that the visual representations are not a summary plot of the data, and we leave it open to the instructor to have the students engage more deeply with the many available variables.
+
+
+Using the two variables measuring amount of debt of a typical (i.e., median) college graduate and median earning 10 years after matriculation, we create both confidence intervals and prediction intervals -- keeping in mind that the observational unit is an academic institution.  Note that the calculations below are for both confidence and prediction intervals.  The confidence interval agglomerates institutions over the entire dataset; however, the prediction value is for a single *institution*  (which is the observational unit).  The analysis lends itself nicely to a conversation about confidence vs. prediction intervals as well as observational units as institution vs. as individual student.  It is worth pointing out to the students that the prediction intervals likely hold more information related to their individual experiences than the confidence intervals.  However, the unit of prediction is for an *institution*, and so the individual student debt and income is likely even more variable than shown here. Additionally, Figure \ref{worth} demonstrates the effect of samples size:  consider the comparison of the Military intervals (one school) to the intervals for all of the US institutions (about 6000 schools).  [Note: the intervals given in Figure \ref{worth} were created using an ANOVA model where the within variance is calculated across all regions, which is how the interval for military schools can be calculated.  You may or may not want to bring that up with your students.]
+
+
+The following R code uses the `mosaic` package to directly calculate both prediction and confidence intervals.  Note the formula interface given by the tilde is described in detail here: http://rpruim.github.io/eCOTS2014/Workshop/Modeling.html.
 
 ```{r}
 require(mosaic)
 debt_mod <- lm(DEBT_MDN~1, data = college_debt)
-debt_fun <- makeFun(debt_mod)
+debt_fun <- mosaic::makeFun(debt_mod)
 debt_fun()
+
 debt_fun(interval="confidence")
 debt_fun(interval="prediction")
 
 earn_mod <- lm(md_earn_wne_p10~1, data = college_debt)
-earn_fun <- makeFun(earn_mod)
+earn_fun <- mosaic::makeFun(earn_mod)
 earn_fun()
+
 earn_fun(interval="confidence")
 earn_fun(interval="prediction")
 ```
 
-The prediction intervals are interesting, but might be even more interesting if broken down by region and shown visually.  Note how much smaller the confidence intervals are from the prediction intervals!  The difference indicates lots of variability across institutions and large sample sizes.
+
+The intervals are interesting, but they might be even more interesting if broken down by region and shown visually.  Note how much smaller the confidence intervals are from the prediction intervals!  The difference indicates lots of variability across institutions and large sample sizes.
 
 ```{r}
 #creating the models for building confidence and prediction intervals:
@@ -134,10 +146,12 @@ for(i in 0:9){
                    i,college_debt[college_debt$region==i,]$region2[1]))
   }
 
-worth <- worth %>% mutate(fit = extract_numeric(fit),
-                          lowerbound = extract_numeric(lowerbound),
-                          upperbound = extract_numeric(upperbound))
+worth <- worth %>% mutate(fit = readr::parse_number(fit),
+                          lowerbound = readr::parse_number(lowerbound),
+                          upperbound = readr::parse_number(upperbound))
+```
 
+```{r  fig.cap="\\label{worth}The x-axis represents the region of the institution.  The y-axis represents either the amount of debt 10 years after matriculation (orange) or the amount of income 10 years after matriculation (blue).  Confidence intervals for the average values (within region) are given by the solid lines.  Prediction intervals for individual institutions are given by the dashed lines.  The solid dot represents the center of both types of intervals (broken down by debt and income)."}
 pd <- position_dodge(width = 1)
 ggplot(worth, aes(x=regName, y=fit)) + 
   geom_point(aes(col=cost), position=pd, size=.8) +
@@ -149,7 +163,9 @@ ggplot(worth, aes(x=regName, y=fit)) +
 
 # Thinking outside the box
 
-The dataset is incredibly rich and can be used for a lot of model building: linear, logistic, machine learning.  Indeed, thinking about interaction terms could be particularly insightful.  Below, we give an example of the variables above with the interaction term as whether or not the institution is one of the Historically Black Colleges and Universities (HBCU).
+
+The College Scorecard dataset is incredibly rich and can be used for many different types of model building: linear, logistic, machine learning.  Indeed, thinking about interaction terms could be particularly insightful. Here, we give an example of regressing earnings on debt with the interaction term as whether or not the institution is one of the Historically Black Colleges and Universities (HBCU). Figure \ref{hbcu} displays the separate regression lines for the two distinct types of institutions.
+
 
 ```{r echo=FALSE}
 # A great function for helping to write the text of the equation 
@@ -172,7 +188,7 @@ data.frame(formula=formula, r2=r2, p=p,n=n1, stringsAsFactors=FALSE)
 
 ```{r}
 college_debt_nona <- college_debt %>% 
-  select(md_earn_wne_p10, DEBT_MDN, HBCU) 
+  dplyr::select(md_earn_wne_p10, DEBT_MDN, HBCU) 
 college_debt_nona <- college_debt_nona[complete.cases(college_debt_nona),]
 
 earn_lm <- lm(md_earn_wne_p10 ~ DEBT_MDN*HBCU, data=college_debt_nona)
@@ -180,10 +196,10 @@ summary(earn_lm)
 ```
 
 ```{r echo=FALSE}
-equation_end = ddply(college_debt_nona, c("HBCU"), equation) 
+equation_end = plyr::ddply(college_debt_nona, c("HBCU"), equation) 
 ```
 
-```{r}
+```{r fig.cap="\\label{hbcu}Median income regressed on debt.  For the analysis, HBCU is interacted with debt to provide two distinct (and not parallel) regression lines.  HBCU institutions are given in blue, and non-HBCU institutions are given in orange."}
 ggplot(college_debt_nona, aes(x=DEBT_MDN, y=md_earn_wne_p10, color=HBCU)) +
   geom_text(aes(DEBT_MDN,md_earn_wne_p10, label=toString(equation_end[1,-1])),
             data=data.frame(DEBT_MDN=25000, md_earn_wne_p10=180000, HBCU="0"))+
@@ -195,3 +211,8 @@ ggplot(college_debt_nona, aes(x=DEBT_MDN, y=md_earn_wne_p10, color=HBCU)) +
   ylab("Median income 10 years post matriculation")+
   theme(text = element_text(size=10))
 ```
+
+Many interesting conversations can ensue based on the regression of income on debt.  Reminding the students that each observation is an institution is an important starting point.  Additionally, students should be able to volunteer the dangers of using a model like this to suggest causality.  Last, there might be room to discuss an inferential analysis of whether HBCUs are statistically different from non-HBCUs (noting the substantial differences in sample sizes).
+
+It is not hard to come up with additional questions to investigate with the College Scorecard data.  Indeed, because the data relate directly to college students, they should be able to find many ways to engage with the data.  We recommend continued conversations about how the data are valuable to the larger community, but that the information is not always complete (e.g., many variables are collected only on students who fill out financial aid forms) and not causative.
+

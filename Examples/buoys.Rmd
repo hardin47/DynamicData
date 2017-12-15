@@ -1,8 +1,13 @@
 ---
 title: "NOAA Buoy Data"
-date: "June 2016"
+date: "December 2017"
 output: pdf_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width = 6, fig.height = 4, fig.align = "center", cache=TRUE)
+```
+
 
 ```{r echo=FALSE,message=FALSE, warning=FALSE}
 require(mosaic)
@@ -15,8 +20,8 @@ require(lattice)
 
 
 # Introduction
-The National Oceanic and Atmospheric Administration (NOAA) is the American federal agency in charge of collecting information and making decisions related to the oceans and the atmosphere.  Throughout North America, they supply weather stations which are located both along the coast as well as in the middle of the ocean (on buoys).  Among other variables, the weather stations collect information on wind, humidity, temperature, visibility, and atmospheric pressure.  The data is all publicly available on NOAA's website.
 
+The National Oceanic and Atmospheric Administration (NOAA) is the American federal agency in charge of collecting information and making decisions related to the oceans and the atmosphere.  Throughout North America, they supply weather stations which are located both along the coast as well as in the middle of the ocean (on buoys).  Among other variables, the weather stations collect information on wind, humidity, temperature, visibility, and atmospheric pressure.  The data is all publicly available on NOAA's website, http://www.ndbc.noaa.gov/.
 
 # Data information & loading data
 
@@ -51,12 +56,17 @@ summary(buoy_data)
 
 # Using dynamic data within a typical classroom
 
+Although the data do not constitute a random sample, they are very likely to be quite representative with respect to the difference in wind and air temperature at that location over the year.  We used a paired analysis (i.e., subtract the two variables and treat them as a single variable) to find a confidence interval for the true difference in temperature between wind and air.  Also, we find a prediction interval for the difference in temperatures across individual measurements.
+
 One might be interested in the difference between the wind temperature and the air temperature.  Generally, the air temperature is cooler than the wind temperature, but confidence intervals and prediction intervals allow us to quantify the difference.  Note that the data lend themselves nicely to ideas of paired observations acting as a univariate sample.  As expected, a 95% confidence interval for the true difference in temperatures gives us a value of between 1.25 and 1.31 degrees.  However, 95% of the individual observations have a difference in wind and air temperature between -1.5 degrees (air is warmer) and 4.06 degrees (wind is warmer).
+
+```{r fig.cap="Density of the temperature difference between wind and air."}
+buoy_data$TempDiff <- buoy_data$WTMP - buoy_data$ATMP
+densityplot(~TempDiff, data=buoy_data)
+```
 
 
 ```{r}
-buoy_data$TempDiff <- buoy_data$WTMP - buoy_data$ATMP
-densityplot(~TempDiff, data=buoy_data)
 tempdiff.mod <- lm(TempDiff ~ 1, data=buoy_data)
 tempdiff.func <- makeFun(tempdiff.mod)
 tempdiff.func()
@@ -66,14 +76,17 @@ tempdiff.func( interval="confidence")
 
 # Thinking outside the box
 
+Although a full analysis of the data would warrant multiple years of data (so as to understand yearly trends), we can estimate the spectral density of the time series using a smoothed periodogram (the data below represent measurements every hour for all of 2014).  In the smoothed periodogram (see Figure \ref{period}) the x-axis is the frequency (one over the period) and y-axis represents the correlation (normalized) between the cosine wave at that frequency and the time series.  We can see that wind speed has strong correlation at period 12 hours and period 24 hours.  A more sophisticated analysis or longer project could include collecting data from multiple buoys, extended years, and/or additional information on storms https://www.ncdc.noaa.gov/stormevents/.
+
 The data are nicely set up to think about analyses is the time domain.  Indeed, looking at the autocorrelation function shows clear 24-hour trends for the wind speed variable.
-```{r}
+
+```{r fig.cap="Autocorrelation function shows strong correlations at a few hours and at 24 hours."}
 acf(buoy_data$WSPD, main="Series: Wind Speed", xlab="Lag (hours)")
 ```
 
 Although a full analysis of the data would warrant multiple years of data (so as to understand yearly trends), we can estimate the spectral density of the time series using a smoothed periodogram.
 
-```{r}
+```{r fig.cap="\\label{period}  A smoothed periodogram of Wind Speed for buoy 46025 off the coast of Santa Monica.  The dashed lines are at 1/12 and 1/24, representing 12-hour and 24-hour periodicity."}
 spec.pgram(buoy_data$WSPD, spans=c(50), xlab="Frequency = 1/period",
            main="Wind Speed, Smoothed Periodogram")
 abline(v=c(1/12,1/24), lty=2)

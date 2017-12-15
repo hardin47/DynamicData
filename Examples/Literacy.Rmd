@@ -1,8 +1,14 @@
 ---
 title: "Literacy Rates from GapMinder"
-date: "June 2016"
+date: "December 2017"
 output: pdf_document
 ---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width = 6, fig.height = 4, fig.align = "center", cache=TRUE)
+```
+
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 require(mosaic)
@@ -11,10 +17,15 @@ require(googlesheets)
 require(tidyr)
 require(dplyr)
 require(gapminder)
+data(gapminder)
 ```
 
 
+
+
 # Introduction
+The literacy rate dynamic dataset comes from GapMinder \url{http://www.gapminder.org/}.  GapMinder also has a plethora of variables from which students can choose (according to their own interests), but here we work with literacy rates measured at the country level. The analysis (and more importantly, the data scraping from GapMinder) could easily be extended for students interested in all sorts of political, social, environmental, or demographic data available.  Understanding political and demographic trends across both time and location can provide very interesting insight into economic or political science questions.  Alternatively the GapMinder data can be perused in a descriptive or graphical manner.
+
 Below is code for pulling in a Google spreadsheet from GapMinder [http://www.gapminder.org/](http://www.gapminder.org/).  You can follow the instructions given in the following R Markdown file for downloading any Google spreadsheet (not just from Gap Minder), though adding authentication (for non public sheets) requires another step.  See [googlesheets](https://github.com/jennybc/googlesheets) for more information.
 
 
@@ -29,24 +40,24 @@ litM_url = "https://docs.google.com/spreadsheets/d/1YF1_ps4srYp8GLdH38v7hJQtDDjF
 litALL_url = "https://docs.google.com/spreadsheets/d/12O0Bo85Dd-9bNq6p5KwXduPET1cRETP-mKy3ZK4q_xo/pub?gid=0"
 
 #pulling in the URL & keeping track of how big it is
-litFurl = gs_url(litF_url, visibility="public")
+litFurl = googlesheets::gs_url(litF_url, visibility="public")
 litF_nrow = litFurl$ws$row_extent[1]
 litF_ncol = litFurl$ws$col_extent[1]
 
-litMurl = gs_url(litM_url, visibility="public")
+litMurl = googlesheets::gs_url(litM_url, visibility="public")
 litM_nrow = litMurl$ws$row_extent[1]
 litM_ncol = litMurl$ws$col_extent[1]
 
-litALLurl = gs_url(litALL_url, visibility="public")
+litALLurl = googlesheets::gs_url(litALL_url, visibility="public")
 litALL_nrow = litALLurl$ws$row_extent[1]
 litALL_ncol = litALLurl$ws$col_extent[1]
 
 
 
 #reading in the dataset
-litF = gs_read(litFurl, range=cell_limits(c(1,1), c(litF_nrow,litF_ncol)))
-litM = gs_read(litMurl, range=cell_limits(c(1,1), c(litM_nrow,litM_ncol)))
-litALL = gs_read(litALLurl, range=cell_limits(c(1,1), c(litALL_nrow,litALL_ncol)))
+litF = googlesheets::gs_read(litFurl, range=googlesheets::cell_limits(c(1,1), c(litF_nrow,litF_ncol)))
+litM = googlesheets::gs_read(litMurl, range=googlesheets::cell_limits(c(1,1), c(litM_nrow,litM_ncol)))
+litALL = googlesheets::gs_read(litALLurl, range=googlesheets::cell_limits(c(1,1), c(litALL_nrow,litALL_ncol)))
 ```
 
 Looking at the data at this point is a good idea.  One thing to notice is that there is a ton of missing data.  That's expected (especially if you are used to looking at GapMinder data), because we wouldn't expect that every country has literacy data for each gender going back 40 years for every single year.  Also, notice that the data aren't in tidy format (rows as observational units and columns of variables).  After we wrangle the data again it will (a) look different and (b) be in tidy form.
@@ -61,27 +72,28 @@ Each of the original googlesheets comes as a spreadsheet with country as the row
 ```{r warning=FALSE}
 litF = litF %>% select(country=starts_with("Adult"), everything()) %>%
         gather(year, litRateF, -country) %>%
-        mutate( year = extract_numeric(year)) %>%
+        mutate( year = readr::parse_number(year)) %>%
         filter(!is.na(litRateF)) %>%
-        mutate(litRateF = extract_numeric(litRateF))
+        mutate(litRateF = readr::parse_number(litRateF))
 
 litM = litM %>% select(country=starts_with("Adult"), everything()) %>%
         gather(year, litRateM, -country) %>%
-        mutate( year = extract_numeric(year)) %>%
+        mutate( year = readr::parse_number(year)) %>%
         filter(!is.na(litRateM)) %>% 
-        mutate(litRateM=extract_numeric(litRateM))
+        mutate(litRateM=readr::parse_number(litRateM))
 
 litALL = litALL %>% select(country=starts_with("Adult"), everything()) %>%
         gather(year, litRateALL, -country) %>%
-        mutate( year = extract_numeric(year)) %>%
+        mutate( year = readr::parse_number(year)) %>%
         filter(!is.na(litRateALL))
 
 literacy = full_join(full_join(litF, litM, by=c("country", "year")), 
                      litALL, by=c("country", "year"))
+
 continentGM = gapminder %>% select(country, continent) %>% group_by(country) %>%
       summarize(continent = first(continent))
-literacy = left_join(literacy, continentGM, by="country")
 
+literacy = left_join(literacy, continentGM, by="country")
 ```
 
 Now the data frame is in tidy format (rows are observational units, columns are variables), and the dataframe literacy has all of the information needed.
@@ -103,21 +115,24 @@ lit_byYear
 
 # Using dynamic data within a typical classroom
 
-To consider the literacy rate, one possible analysis would be to compare female and male literacy rates.  The first plot shows that the higher the female literacy rate, the higher the male literacy rate.  Additionally, across the board, the male literacy rate is higher than the female literacy rate (as referenced by the y=x line).
+The introductory analysis considers gender differences in literacy rates and uses a linear model on the difference between female and male literacy rates across time.  We show a graphical representation and discuss model assumptions including sampling and independence of residuals. The model indicates that the difference between male and female literacy rates is shrinking over time.  However, we worry about the effects of other variables and encourage a more complete analysis.  Indeed, there may be large biases in our model if important explanatory variables have been left out.
 
 It is important to note that the data collected here (and on all of GapMinder) is observational.  Causal mechanisms cannot be implied regardless of strength of correlation, and we recommend a converstation with students about the dangers of possible confounding variables that might explain any suggested causal realtionships.
 
 
-```{r warning=FALSE}
+```{r fig.cap="The plot shows that the higher the female literacy rate, the higher the male literacy rate.  Additionally, across the board, the male literacy rate is higher than the female literacy rate (as referenced by the y=x line)."}
 ggplot(literacy, aes(x=litRateF, y=litRateM)) + 
     geom_point(alpha=.75, aes(color=year)) + geom_abline(slope=1, intercept=0)
 ```
 
 It might be interesting, however, to look at the relationship between literacy rates over time.  To do that, we create a new variable which is the difference between male and female literacy rates.
 
-```{r warning=FALSE}
+```{r}
 literacy = literacy %>% mutate(diffLit = litRateM - litRateF)
 summary(lm(diffLit~year, data=literacy))
+```
+
+```{r fig.cap="Difference in literacy rates vs year; blue line is the least squares regression line."}
 ggplot(literacy, aes(x=year, y=diffLit)) + geom_point(alpha=0.75, aes(color=continent)) +
     stat_smooth(method="lm", se=FALSE)
 ```
@@ -133,9 +148,14 @@ We feel comfortable concluding that overall, the difference between male and fem
 
 # Thinking outside the box
 
-```{r warning=FALSE}
-summary(lm(diffLit~year*continent, data=literacy))
+In the second analysis, we work with the additional variable `continent`.  The trends observed in the first analysis hold up in the second analysis (i.e., the difference declines over time in each of the continents).   However, there are additional considerations to be made, for example, the differences between the slopes across the continents (the analysis is available in the supplementary materials and not shown here).  We suggest additional explorations into the independence of the residuals and more advanced spatio-temporal patterns of literacy.
 
+
+```{r}
+summary(lm(diffLit~year*continent, data=literacy))
+```
+
+```{r fig.cap="Least squares regression line between difference in literacy rate and year broken down by continent."}
 ggplot(literacy, aes(x=year, y=diffLit)) + geom_point() + 
   stat_smooth(method="lm", se=FALSE, aes(color=continent))
 ```

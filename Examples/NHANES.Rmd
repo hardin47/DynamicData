@@ -1,30 +1,57 @@
 ---
 title: "NHANES"
-date: "June 2016"
+date: "December 2017"
 output: pdf_document
+bibliography: dyndata.bib
 ---
 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, fig.width = 5, fig.height = 3.5, fig.align = "center", cache=TRUE)
+```
+
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-library(dplyr)
-library(ggplot2)
-library(Hmisc)
+require(dplyr)
+require(ggplot2)
+require(haven)
+require(readr)
+require(lvplot)
 ```
 
 # Introduction
-The NHANES data come from the National Health and Nutrition Examination Survey, surveys given nationwide by the Center for Disease Controls (CDC). The data are collected to assess the health and well being of adults and children throughout the United States.  The survey is one of the only to combine both survey questions and physical examinations.
+
+The NHANES data come from the National Health and Nutrition Examination Survey, surveys given nationwide by the Center for Disease Controls (CDC).  The CDC adopted the following sampling procedure:
+
+\begin{enumerate}
+\item Selection of primary sampling units (PSUs), which are counties or small groups of contiguous counties.
+\item Selection of segments within PSUs that constitute a block or group of blocks containing a cluster of households.
+\item Selection of specific households within segments.
+\item Selection of individuals within a household
+\end{enumerate}
+
+About 12,000 persons per 2-year cycle were asked to participate in NHANES. Response rates varied by year, but an average of 10,500 persons out of the initial 12,000 agreed to complete a household interview. Of these, about 10,000 then participated in data collection at the mobile exam center. The persons (observational units) are located in counties across the country. About 30 selected counties were visited during a 2-year survey cycle out of approximately 3,000 counties in the United States. Each of the four regions of the United States and metropolitan and non-metropolitan areas are represented each year.  As such, the data collection is ongoing, and the data are updated on the NHANES website periodically, http://www.cdc.gov/nchs/nhanes.htm.  This manuscript uses the 2011-2012 NHANES data, but we expect the data to be updated regularly, and the URL should simply change to 2013-2014 when it becomes available.
+
+Note that the NHANES data are available in the `mosaic` package [@mosaic], but the `mosaic` version of the NHANES data is static (from 2011-2012), and the data has been cleaned with pre-selected variables.  Additionally, the variables can be downloaded directly using the `nhanesA` package in R.  https://cran.r-project.org/web/packages/nhanesA/vignettes/Introducing_nhanesA.html.  By accessing the data directly from the CDC's website, students become more involved in the data analysis process, understanding what they can and cannot get from the data.  
+
+The variables in the CDC's online NHANES dataset are virtually limitless.  We use a few different datasets, merging them based on an individual identifier in the dataset.  The variable information is all given online, but each at a different webpage.  For example, the demographic data is at http://wwwn.cdc.gov/nchs/nhanes/search/variablelist.aspx?Component=Demographics&CycleBeginYear=2011.
+
+
+A further important aspect to the example is that (as described above) the data do not constitute a simple random sample (it is a weighted sample) from a population.  The sampling scheme can be part of the statistical inquiry into the data analysis, or it can be set by the instructor in the template used to download the data.  The data which is directly downloaded from the CDC website includes variables on the weighting scheme.  In the R Markdown file provided with this manuscript, we demonstrate how to create a dataset which *can* act as a simple random sample from the population.\footnote{The weighting analysis was motivated by work done by Shonda Kuiper (http://web.grinnell.edu/individuals/kuipers/stat2labs/weights.html) as well as the Project Mosaic Team (https://cran.r-project.org/web/packages/NHANES/NHANES.pdf).}  The figure and analysis below are done with a proxy simple random sample.
+
 
 # Data information & loading data
 
 We download data on demographic information and body image.  The data are in SAS format, but R has no trouble scraping the data from the NHANES website and uploading it into R.
 
 ```{r}
-NHANES.demo <- sasxport.get("http://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/DEMO_G.XPT")
-NHANES.body <- sasxport.get("http://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/BMX_G.XPT")
-NHANES.demo <-  
-  mutate(NHANES.demo, gender = ifelse(NHANES.demo$riagendr==1, "male", "female")) 
+demourl <- "http://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/DEMO_G.XPT"
+bodyurl <- "http://wwwn.cdc.gov/Nchs/Nhanes/2011-2012/BMX_G.XPT"
+NHANES.demo <- read_xpt(demourl)
+NHANES.body <- read_xpt(bodyurl)
+NHANES.demo$gender <- ifelse(NHANES.demo$RIAGENDR==1, "male", "female")
 
-comb <-  
-  inner_join(NHANES.body, NHANES.demo, by = "seqn")
+comb <- dplyr::inner_join(NHANES.body, NHANES.demo, by = "SEQN")
 ```
 
 
@@ -32,10 +59,15 @@ Additionally, the NHANES data were collected using a cluster sampling scheme, so
 
 
 ```{r}
+set.seed(4747)
 numobs = 2000
-SRSsample <- sample(1:nrow(comb), numobs, replace=FALSE,
-       prob=comb$wtmec2yr/sum(comb$wtmec2yr))
+SRSsample <- sample(1:nrow(comb), numobs, replace=FALSE, prob=comb$WTMEC2YR/sum(comb$WTMEC2YR))
 comb <- comb[SRSsample,]
+adults = comb %>% 
+  dplyr::filter(RIDAGEYR >=18, BMXBMI>1) %>% 
+  dplyr::filter(DMDMARTL>0 & DMDMARTL < 10) %>% 
+  dplyr::mutate(rel=ifelse(DMDMARTL==6|DMDMARTL==1, "committed", "not")) %>%
+  dplyr::mutate(bmi=BMXBMI)
 ```
 
 
@@ -44,7 +76,7 @@ comb <- comb[SRSsample,]
 
 One research question of interest is whether people in a committed relationship have a higher BMI than those who are not.  Note that a causal connection cannot be made here, but we are justified in thinking about the data as a good random sample from the US population.  We filter only the adults out of the sample and also created a relationship variable as to whether or not the individual is in a committed relationship.
 
-The boxplots and violin plots both demonstrate that there is not a substantial difference between the BMI for those in committed relationships versus those who are not.  The tests of significance validate the ideas from the descriptive statistics.
+The boxplots both demonstrate that there is not a substantial difference between the BMI for those in committed relationships versus those who are not.  The tests of significance validate the ideas from the descriptive statistics.
 
 It is worth noting here that the sample size is quite large.  If students repeat this analysis with different variables, it should be noted that very small effect sizes can be seen with large datasets.  A small p-value might indicate that there are significant effects, but an extra interpretation as to whether the effect is a practical difference warrants consideration.  It does not seem that the small *average* effect on BMI of being in a relationship is of any particular note when considering the large standard deviation across individual BMIs of both groups.
 
@@ -52,15 +84,14 @@ Additionally, again we point out that although these data are likely a good repr
 
 ```{r}
 adults = comb %>% 
-  filter(ridageyr >=18, bmxbmi>1) %>% 
-  filter(dmdmartl>0 & dmdmartl < 10) %>% 
-  mutate(rel=ifelse(dmdmartl==6|dmdmartl==1, "committed", "not")) %>%
-  mutate(bmi=bmxbmi)
+  filter(RIDAGEYR >=18, BMXBMI>1) %>% 
+  filter(DMDMARTL>0 & DMDMARTL < 10) %>% 
+  mutate(rel=ifelse(DMDMARTL==6|DMDMARTL==1, "committed", "not")) %>%
+  mutate(bmi=BMXBMI)
   
 boxplot(bmi ~ rel, data=adults, xlab="Relationship Status", ylab="BMI")
 
-ggplot(adults, aes(rel, bmi))+ geom_violin(color="orange")+ 
-  xlab("Relationship Status") + ylab("BMI")
+with(adults, LVboxplot(bmi ~ rel, xlab="BMI", ylab="Relationship Status"))
 
 t.test(bmi ~ rel, data=adults)
 dim(adults)
@@ -78,13 +109,14 @@ names(adults)
 For this analysis, however, we use height and weight.  We start with a simple scatterplot of height and weight with expected results (there is a correlation between height and weight, and men tend to be taller on average than women).  When adding a smoothed curve to the data, however, we are able to discuss how smooth curves are created, how to find the SE of the smooth curve, why there is extra variability due to extremes and also due to fewer data points on the ends, extrapolation (note that the two curves have different ranges), and the outcome that slopes of the two curves are not substantially different (no interaction) though might warrant further study.
 
 
-```{r}
-ggplot(adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) + geom_point(alpha=.5)+ 
-  xlab("Height") + ylab("Weight") + ggtitle("Height vs Weight by Gender")
+```{r fig.cap="\\label{nhanesSmooth} A scatterplot of weight and height broken down by gender.  A smooth regression is fit to the points, and the confidence interval for the smooth curve as well as the increase in variability for small and large values of height are part of an important discussion in a second level regression course."}
+ggplot(adults, aes(x=BMXHT, y=BMXWT, group=gender, color=gender)) + 
+  xlab("Height") + ylab("Weight") + geom_point(alpha=.5) + 
+  ggtitle("Height vs Weight by Gender")
   
-ggplot(adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) + 
-  xlab("Height") + ylab("Weight") + geom_point(alpha=.5)+ 
-  stat_smooth(alpha=1)+ 
+ggplot(adults, aes(x=BMXHT, y=BMXWT, group=gender, color=gender)) + 
+  xlab("Height") + ylab("Weight") + geom_point(alpha=.5) + 
+  stat_smooth(alpha=1) + 
   ggtitle("Height vs Weight by Gender with Smooth Regression Fit")
 ```
 
@@ -92,3 +124,6 @@ ggplot(adults, aes(x=bmxht, y=bmxwt, group=gender, color=gender)) +
 ### Additional ideas for analysis:
 
 With many continuous and categorical variables, the data can be used for both standard statistical regression (e.g., linear, logistic, etc.) or machine learning predictive modeling (e.g., LASSO, support vector machines, regression trees).
+
+# References
+
