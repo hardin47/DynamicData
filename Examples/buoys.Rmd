@@ -36,7 +36,7 @@ names(buoy_data) <- temp
 ```
 
 
-Always a good idea to look at the data!  One thing to notice is that there are some variables coded as 99/999/9999.  From user experience, we surmize that those values should be NA.  Additionally, if we want to consider only the 2014 data, we should remove any previous data.
+Always a good idea to look at the data!  One thing to notice is that there are some variables coded as 99/999/9999.  From user experience, we surmise that those values should be NA.  Additionally, if we want to consider only the 2014 data, we should remove any previous data.
 
 ```{r}
 summary(buoy_data)
